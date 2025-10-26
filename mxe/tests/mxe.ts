@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
-import { ArciumMxe } from "../target/types/arcium_mxe";
+import { Mxe } from "../target/types/mxe";
 import { randomBytes } from "crypto";
 import {
   awaitComputationFinalization,
@@ -25,11 +25,11 @@ import * as fs from "fs";
 import * as os from "os";
 import { expect } from "chai";
 
-describe("ArciumMxe", () => {
+describe("Mxe", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
   const program = anchor.workspace
-    .ArciumMxe as Program<ArciumMxe>;
+    .Mxe as Program<Mxe>;
   const provider = anchor.getProvider();
 
   type Event = anchor.IdlEvents<(typeof program)["idl"]>;
@@ -126,7 +126,7 @@ describe("ArciumMxe", () => {
   });
 
   async function initAddTogetherCompDef(
-    program: Program<ArciumMxe>,
+    program: Program<Mxe>,
     owner: anchor.web3.Keypair,
     uploadRawCircuit: boolean,
     offchainSource: boolean

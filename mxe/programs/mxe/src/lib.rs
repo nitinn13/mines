@@ -1,68 +1,65 @@
 use anchor_lang::prelude::*;
 use arcium_anchor::prelude::*;
 
-const COMP_DEF_OFFSET_ADD_TOGETHER: u32 = comp_def_offset("add_together");
+const COMP_DEF_OFFSET_MINE: u32 = comp_def_offset("mine");
 
-declare_id!("13kJ2K97yhqX6Cr5SEiEfutj5BYZx2onrJMJyeB8zARK");
+declare_id!("2JJK2akXDKexC1uMBwRH32KZirQfebQcoGTrXaJmk6Ce");
 
 #[arcium_program]
-pub mod arcium_mxe {
+pub mod gamemine {
     use super::*;
 
-    pub fn init_add_together_comp_def(ctx: Context<InitAddTogetherCompDef>) -> Result<()> {
+    pub fn init_mine_comp_def(ctx: Context<InitMineCompDef>) -> Result<()> {
         init_comp_def(ctx.accounts, true, 0, None, None)?;
         Ok(())
     }
 
-    pub fn add_together(
-        ctx: Context<AddTogether>,
+    pub fn mine(
+        ctx: Context<Mine>,
         computation_offset: u64,
-        ciphertext_0: [u8; 32],
-        ciphertext_1: [u8; 32],
+        choice: [u8; 32],
         pub_key: [u8; 32],
         nonce: u128,
     ) -> Result<()> {
-        ctx.accounts.sign_pda_account.bump = ctx.bumps.sign_pda_account;
         let args = vec![
             Argument::ArcisPubkey(pub_key),
             Argument::PlaintextU128(nonce),
-            Argument::EncryptedU8(ciphertext_0),
-            Argument::EncryptedU8(ciphertext_1),
+            Argument::EncryptedU8(choice),
         ];
+
+        ctx.accounts.sign_pda_account.bump = ctx.bumps.sign_pda_account;
 
         queue_computation(
             ctx.accounts,
             computation_offset,
             args,
             None,
-            vec![AddTogetherCallback::callback_ix(&[])],
+            vec![MineCallback::callback_ix(&[])],
         )?;
 
         Ok(())
     }
 
-    #[arcium_callback(encrypted_ix = "add_together")]
-    pub fn add_together_callback(
-        ctx: Context<AddTogetherCallback>,
-        output: ComputationOutputs<AddTogetherOutput>,
+    #[arcium_callback(encrypted_ix = "mine")]
+    pub fn mine_callback(
+        ctx: Context<MineCallback>,
+        output: ComputationOutputs<MineOutput>,
     ) -> Result<()> {
         let o = match output {
-            ComputationOutputs::Success(AddTogetherOutput { field_0 }) => field_0,
+            ComputationOutputs::Success(MineOutput { field_0 }) => field_0,
             _ => return Err(ErrorCode::AbortedComputation.into()),
         };
 
-        emit!(SumEvent {
-            sum: o.ciphertexts[0],
-            nonce: o.nonce.to_le_bytes(),
-        });
+        emit!(MineEvent { result: o });
+
         Ok(())
     }
 }
 
-#[queue_computation_accounts("add_together", payer)]
+#[queue_computation_accounts("mine", payer)]
 #[derive(Accounts)]
 #[instruction(computation_offset: u64)]
-pub struct AddTogether<'info> {
+pub struct Mine<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(
@@ -82,13 +79,13 @@ pub struct AddTogether<'info> {
         mut,
         address = derive_mempool_pda!()
     )]
-    /// CHECK: mempool_account, checked by the arcium program.
+    /// CHECK: mempool_account, checked by the arcium program
     pub mempool_account: UncheckedAccount<'info>,
     #[account(
         mut,
         address = derive_execpool_pda!()
     )]
-    /// CHECK: executing_pool, checked by the arcium program.
+    /// CHECK: executing_pool, checked by the arcium program
     pub executing_pool: UncheckedAccount<'info>,
     #[account(
         mut,
@@ -97,7 +94,7 @@ pub struct AddTogether<'info> {
     /// CHECK: computation_account, checked by the arcium program.
     pub computation_account: UncheckedAccount<'info>,
     #[account(
-        address = derive_comp_def_pda!(COMP_DEF_OFFSET_ADD_TOGETHER)
+        address = derive_comp_def_pda!(COMP_DEF_OFFSET_MINE)
     )]
     pub comp_def_account: Account<'info, ComputationDefinitionAccount>,
     #[account(
@@ -111,19 +108,19 @@ pub struct AddTogether<'info> {
     )]
     pub pool_account: Account<'info, FeePool>,
     #[account(
-        address = ARCIUM_CLOCK_ACCOUNT_ADDRESS
+        address = ARCIUM_CLOCK_ACCOUNT_ADDRESS,
     )]
     pub clock_account: Account<'info, ClockAccount>,
     pub system_program: Program<'info, System>,
     pub arcium_program: Program<'info, Arcium>,
 }
 
-#[callback_accounts("add_together")]
+#[callback_accounts("mine")]
 #[derive(Accounts)]
-pub struct AddTogetherCallback<'info> {
+pub struct MineCallback<'info> {
     pub arcium_program: Program<'info, Arcium>,
     #[account(
-        address = derive_comp_def_pda!(COMP_DEF_OFFSET_ADD_TOGETHER)
+        address = derive_comp_def_pda!(COMP_DEF_OFFSET_MINE)
     )]
     pub comp_def_account: Account<'info, ComputationDefinitionAccount>,
     #[account(address = ::anchor_lang::solana_program::sysvar::instructions::ID)]
@@ -131,9 +128,9 @@ pub struct AddTogetherCallback<'info> {
     pub instructions_sysvar: AccountInfo<'info>,
 }
 
-#[init_computation_definition_accounts("add_together", payer)]
+#[init_computation_definition_accounts("mine", payer)]
 #[derive(Accounts)]
-pub struct InitAddTogetherCompDef<'info> {
+pub struct InitMineCompDef<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     #[account(
@@ -150,15 +147,14 @@ pub struct InitAddTogetherCompDef<'info> {
 }
 
 #[event]
-pub struct SumEvent {
-    pub sum: [u8; 32],
-    pub nonce: [u8; 16],
+pub struct MineEvent {
+    pub result: bool,
 }
 
 #[error_code]
 pub enum ErrorCode {
     #[msg("The computation was aborted")]
     AbortedComputation,
-    #[msg("Cluster not set")]
+    #[msg("The cluster is not set")]
     ClusterNotSet,
 }

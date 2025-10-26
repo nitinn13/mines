@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-arcium_mxe = "13kJ2K97yhqX6Cr5SEiEfutj5BYZx2onrJMJyeB8zARK"
+mxe = "2JJK2akXDKexC1uMBwRH32KZirQfebQcoGTrXaJmk6Ce"
 
 [registry]
 url = "https://api.apr.dev"
