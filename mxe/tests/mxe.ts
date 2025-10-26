@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
-import { Mxe } from "../target/types/mxe";
+import { Gamemine } from "../target/types/gamemine";
 import { randomBytes } from "crypto";
 import {
   awaitComputationFinalization,
@@ -13,29 +13,25 @@ import {
   buildFinalizeCompDefTx,
   RescueCipher,
   deserializeLE,
-  getMXEPublicKey,
   getMXEAccAddress,
   getMempoolAccAddress,
   getCompDefAccAddress,
   getExecutingPoolAccAddress,
-  getComputationAccAddress,
   x25519,
+  getComputationAccAddress,
+  getMXEPublicKey,
 } from "@arcium-hq/client";
 import * as fs from "fs";
 import * as os from "os";
-import { expect } from "chai";
 
-describe("Mxe", () => {
+describe("Gamemine", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
-  const program = anchor.workspace
-    .Mxe as Program<Mxe>;
+  const program = anchor.workspace.Gamemine as Program<Gamemine>;
   const provider = anchor.getProvider();
 
   type Event = anchor.IdlEvents<(typeof program)["idl"]>;
-  const awaitEvent = async <E extends keyof Event>(
-    eventName: E
-  ): Promise<Event[E]> => {
+  const awaitEvent = async <E extends keyof Event>(eventName: E) => {
     let listenerId: number;
     const event = await new Promise<Event[E]>((res) => {
       listenerId = program.addEventListener(eventName, (event) => {
@@ -49,20 +45,8 @@ describe("Mxe", () => {
 
   const arciumEnv = getArciumEnv();
 
-  it("Is initialized!", async () => {
+  it("choose a mine!", async () => {
     const owner = readKpJson(`${os.homedir()}/.config/solana/id.json`);
-
-    console.log("Initializing add together computation definition");
-    const initATSig = await initAddTogetherCompDef(
-      program,
-      owner,
-      false,
-      false
-    );
-    console.log(
-      "Add together computation definition initialized with signature",
-      initATSig
-    );
 
     const mxePublicKey = await getMXEPublicKeyWithRetry(
       provider as anchor.AnchorProvider,
@@ -71,27 +55,33 @@ describe("Mxe", () => {
 
     console.log("MXE x25519 pubkey is", mxePublicKey);
 
+    console.log("Initializing mine computation definition");
+    const initMineSig = await initMineCompDef(program, owner, false, false);
+    console.log(
+      "Mine computation definition initialized with signature",
+      initMineSig
+    );
+
     const privateKey = x25519.utils.randomSecretKey();
     const publicKey = x25519.getPublicKey(privateKey);
-
     const sharedSecret = x25519.getSharedSecret(privateKey, mxePublicKey);
     const cipher = new RescueCipher(sharedSecret);
 
-    const val1 = BigInt(1);
-    const val2 = BigInt(2);
-    const plaintext = [val1, val2];
+    // const choice = BigInt(3);
+    const choice = BigInt(Math.floor(Math.random() * 9) + 1);
+    const plaintext = [choice];
 
     const nonce = randomBytes(16);
     const ciphertext = cipher.encrypt(plaintext, nonce);
 
-    const sumEventPromise = awaitEvent("sumEvent");
+    const mineEventPromise = awaitEvent("mineEvent");
+
     const computationOffset = new anchor.BN(randomBytes(8), "hex");
 
     const queueSig = await program.methods
-      .addTogether(
+      .mine(
         computationOffset,
         Array.from(ciphertext[0]),
-        Array.from(ciphertext[1]),
         Array.from(publicKey),
         new anchor.BN(deserializeLE(nonce).toString())
       )
@@ -106,7 +96,7 @@ describe("Mxe", () => {
         executingPool: getExecutingPoolAccAddress(program.programId),
         compDefAccount: getCompDefAccAddress(
           program.programId,
-          Buffer.from(getCompDefAccOffset("add_together")).readUInt32LE()
+          Buffer.from(getCompDefAccOffset("mine")).readUInt32LE()
         ),
       })
       .rpc({ skipPreflight: true, commitment: "confirmed" });
@@ -120,13 +110,17 @@ describe("Mxe", () => {
     );
     console.log("Finalize sig is ", finalizeSig);
 
-    const sumEvent = await sumEventPromise;
-    const decrypted = cipher.decrypt([sumEvent.sum], sumEvent.nonce)[0];
-    expect(decrypted).to.equal(val1 + val2);
+    const mineEvent = await mineEventPromise;
+
+    if (mineEvent.result) {
+      console.log("Better luck next time!");
+    } else {
+      console.log("Congratulations! You won!");
+    }
   });
 
-  async function initAddTogetherCompDef(
-    program: Program<Mxe>,
+  async function initMineCompDef(
+    program: Program<Gamemine>,
     owner: anchor.web3.Keypair,
     uploadRawCircuit: boolean,
     offchainSource: boolean
@@ -134,7 +128,7 @@ describe("Mxe", () => {
     const baseSeedCompDefAcc = getArciumAccountBaseSeed(
       "ComputationDefinitionAccount"
     );
-    const offset = getCompDefAccOffset("add_together");
+    const offset = getCompDefAccOffset("mine");
 
     const compDefPDA = PublicKey.findProgramAddressSync(
       [baseSeedCompDefAcc, program.programId.toBuffer(), offset],
@@ -144,7 +138,7 @@ describe("Mxe", () => {
     console.log("Comp def pda is ", compDefPDA);
 
     const sig = await program.methods
-      .initAddTogetherCompDef()
+      .initMineCompDef()
       .accounts({
         compDefAccount: compDefPDA,
         payer: owner.publicKey,
@@ -154,14 +148,14 @@ describe("Mxe", () => {
       .rpc({
         commitment: "confirmed",
       });
-    console.log("Init add together computation definition transaction", sig);
+    console.log("Init mine computation definition transaction", sig);
 
     if (uploadRawCircuit) {
-      const rawCircuit = fs.readFileSync("build/add_together.arcis");
+      const rawCircuit = fs.readFileSync("build/mine.arcis");
 
       await uploadCircuit(
         provider as anchor.AnchorProvider,
-        "add_together",
+        "mine",
         program.programId,
         rawCircuit,
         true
