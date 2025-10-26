@@ -5,14 +5,19 @@ mod circuits {
     use arcis_imports::*;
 
     pub struct InputValues {
-        v1: u8,
-        v2: u8,
+        pub choice: u8, 
     }
 
     #[instruction]
-    pub fn add_together(input_ctxt: Enc<Shared, InputValues>) -> Enc<Shared, u16> {
+    pub fn mine(input_ctxt: Enc<Shared, InputValues>) -> bool {
         let input = input_ctxt.to_arcis();
-        let sum = input.v1 as u16 + input.v2 as u16;
-        input_ctxt.owner.from_arcis(sum)
+
+        let bomb = ArcisRNG::u8(10);
+
+        // true => player loses (hit bomb)
+        // false => player wins (safe tile)
+        let result = input.choice == bomb;
+
+        result.reveal()
     }
 }
