@@ -1,10 +1,10 @@
-import MinesGame from "@/components/MinesGame";
-import Image from "next/image";
+import MineGame from "@/components/mine-game"
 
 export default function Home() {
   return (
-    <>
-    <MinesGame/>
-    </>
-  );
+    <main className="min-h-screen bg-black flex items-center justify-center p-4">
+      <MineGame />
+    </main>
+  )
 }
+
