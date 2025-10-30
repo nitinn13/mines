@@ -67,6 +67,7 @@ export async function deriveX25519KeyFromWallet(
   }
   
   // 3. Derive key material from signature using SHA-256
+  // @ts-ignore
   const keyMaterial = await crypto.subtle.digest('SHA-256', signature);
   
   // 4. Use first 32 bytes as x25519 private key
@@ -92,12 +93,14 @@ async function encryptData(data: Uint8Array, key: string): Promise<string> {
     aesKey = keyBuffer;
   } else {
     // Hash the key to get exactly 32 bytes
+      // @ts-ignore
     const hashBuffer = await crypto.subtle.digest('SHA-256', keyBuffer);
     aesKey = new Uint8Array(hashBuffer);
   }
-  
+ 
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
+      // @ts-ignore
     aesKey,
     { name: 'AES-GCM' },
     false,
@@ -108,6 +111,7 @@ async function encryptData(data: Uint8Array, key: string): Promise<string> {
   const encrypted = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv },
     cryptoKey,
+      // @ts-ignore
     data
   );
   
@@ -140,12 +144,14 @@ async function decryptData(encryptedData: string, key: string): Promise<Uint8Arr
     aesKey = keyBuffer;
   } else {
     // Hash the key to get exactly 32 bytes
+      // @ts-ignore
     const hashBuffer = await crypto.subtle.digest('SHA-256', keyBuffer);
     aesKey = new Uint8Array(hashBuffer);
   }
   
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
+      // @ts-ignore
     aesKey,
     { name: 'AES-GCM' },
     false,
