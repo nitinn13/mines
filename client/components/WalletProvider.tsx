@@ -1,3 +1,4 @@
+"use client";
 import React, { FC, ReactNode, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
@@ -9,7 +10,8 @@ import {
 } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
 
-// Note: CSS styles are imported in main.tsx instead of here to avoid require() issues
+// Import the CSS styles - this is crucial!
+import '@solana/wallet-adapter-react-ui/styles.css';
 
 interface WalletContextProviderProps {
   children: ReactNode;
