@@ -54,7 +54,7 @@ export default function MineGame() {
 
     try {
       console.log("Mine clicked:", id + 1)
-      const result = await Promise.race([
+      const result : any = await Promise.race([
         choosemine(id + 1),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Timeout after 3s")), 3000)
