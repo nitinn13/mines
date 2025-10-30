@@ -4,9 +4,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useContract } from "@/hooks/useContract";
 import { WalletConnectButton } from "./WalletConnectButton";
-import {
-  WalletMultiButton
-} from '@solana/wallet-adapter-react-ui';
 import { useMPCKeyManager } from "@/hooks/useMPCKeyManager";
 
 

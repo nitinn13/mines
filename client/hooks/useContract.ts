@@ -32,7 +32,7 @@ async function waitForComputationFinalization(
     computationOffset: anchor.BN,
     programId: anchor.Program<Gamemine>["programId"],
     commitment: "confirmed" | "finalized" = "finalized",
-    timeoutMs: number = 120000
+    timeoutMs: number = 1200
 ) {
     try {
         const finalizeSig = await Promise.race([
@@ -219,13 +219,24 @@ export const useContract = () => {
                 const txid = await connection.sendRawTransaction(signedTx.serialize(), {
                     skipPreflight: true,
                 });
+                console.log("Game Mine signedTx", signedTx);
+                console.log("=== DEBUG COMPUTATION START ===");
+                console.log("Cluster Account:", clusterAccount.toBase58());
+                console.log("ComputationOffset:", ComputationOffset.toString());
+                console.log("ComputationAccount:", getComputationAccAddress(program.programId, ComputationOffset).toBase58());
+                console.log("Program ID:", program.programId.toBase58());
+                console.log("TX:", txid);
+                console.log("Waiting for computation finalization...");
 
+
+                const compAccount = getComputationAccAddress(program.programId, ComputationOffset);
                 const finalizationResult = await waitForComputationFinalization(
                     provider as anchor.AnchorProvider,
                     ComputationOffset,
                     program.programId
                 );
-                console.log("Buy shares finalizationResult", finalizationResult);
+
+                console.log("Game Mine finalizationResult", finalizationResult);
                 if (!finalizationResult.success || !finalizationResult.finalizeSig) {
                     return {
                         success: false,
@@ -246,7 +257,7 @@ export const useContract = () => {
                 };
             }
             catch (error) {
-                console.error("Error in buyShares:", error);
+                console.error("Error in game mine :", error);
                 return {
                     success: false,
                     error: error instanceof Error ? error.message : "Unknown error",

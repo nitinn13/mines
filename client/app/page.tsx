@@ -5,9 +5,10 @@ import Test from "@/components/test"
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white flex items-center justify-center p-4">
+    <main className="min-h-screen bg-black flex items-center justify-center p-4">
       {/* <MPCKeyManager/> */}
-        <Test/>
+        {/* <Test/> */}
+        <MineGame/>
     </main>
   )
 }
