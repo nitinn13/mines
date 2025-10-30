@@ -3,10 +3,18 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useContract } from "@/hooks/useContract";
-// import { WalletConnectButton } from "./WalletConnectButton";
+import { WalletConnectButton } from "./WalletConnectButton";
 import {
   WalletMultiButton
 } from '@solana/wallet-adapter-react-ui';
+import { useMPCKeyManager } from "@/hooks/useMPCKeyManager";
+
+
+function MPCKeyManager() {
+  useMPCKeyManager();
+  return null;
+}
+
 export default function Test() {
   const { choosemine } = useContract();
   const [status, setStatus] = useState<string | null>(null);
@@ -14,6 +22,7 @@ export default function Test() {
 
   const handleChooseMine = async (choice: number) => {
       console.log("Mine clicked:", choice);
+      console.log(process.env.NEXT_PUBLIC_MPC_ENCRYPTION_KEY)
 
     setLoading(true);
     setStatus(null);
@@ -37,9 +46,10 @@ export default function Test() {
 
   return (
     <div className="flex flex-col items-center gap-4 p-4 bg-red-200">
+      <MPCKeyManager/>
       
-      <WalletMultiButton/>
-      {/* <WalletConnectButton/> */}
+      {/* <WalletMultiButton/> */}
+      <WalletConnectButton/>
       <h1 className="text-xl font-bold text-white">Mine Game</h1>
       <div className="flex gap-2">
         {[1, 2, 3, 4, 5].map((num) => (

@@ -83,6 +83,42 @@ export const useContract = () => {
     }, [provider]);
 
 
+    // const cipherDataPromise = useMemo(async () => {
+    //     if (!program || !publicKey) {
+    //         return null;
+    //     }
+
+    //     try {
+    //         const mxePublicKey = await getMXEPublicKey(provider, program.programId);
+    //         if (!mxePublicKey) {
+    //             throw new Error("Failed to get MXE public key");
+    //         }
+
+    //         // Try to get stored MPC keys first
+    //         const storedKeys = await getMPCKeys(publicKey.toBase58());
+    //         let cipherPrivateKey: Uint8Array;
+    //         let cipherPublicKey: Uint8Array;
+
+    //         if (storedKeys) {
+    //             console.log("Using stored MPC keys for wallet:", publicKey.toBase58());
+    //             cipherPrivateKey = storedKeys.privateKey;
+    //             cipherPublicKey = storedKeys.publicKey;
+    //         } else {
+    //             console.error("No stored MPC keys found", publicKey.toBase58());
+    //             throw new Error("No stored MPC keys found");
+    //         }
+
+    //         const cipherSharedSecret = x25519.getSharedSecret(
+    //             cipherPrivateKey,
+    //             mxePublicKey
+    //         );
+    //         const cipher = new RescueCipher(cipherSharedSecret);
+    //         return { cipher, cipherPublicKey };
+    //     } catch (error) {
+    //         console.error("Error in cipherDataPromise:", error);
+    //         return null;
+    //     }
+    // }, [provider, program, publicKey]);
     const cipherDataPromise = useMemo(async () => {
         if (!program || !publicKey) {
             return null;
@@ -94,31 +130,34 @@ export const useContract = () => {
                 throw new Error("Failed to get MXE public key");
             }
 
-            // Try to get stored MPC keys first
-            const storedKeys = await getMPCKeys(publicKey.toBase58());
-            let cipherPrivateKey: Uint8Array;
-            let cipherPublicKey: Uint8Array;
-
-            if (storedKeys) {
-                console.log("Using stored MPC keys for wallet:", publicKey.toBase58());
-                cipherPrivateKey = storedKeys.privateKey;
-                cipherPublicKey = storedKeys.publicKey;
-            } else {
-                console.error("No stored MPC keys found", publicKey.toBase58());
-                throw new Error("No stored MPC keys found");
+            // Wait for MPC keys to become available (retry for ~3 seconds)
+            let storedKeys = null;
+            for (let i = 0; i < 10; i++) {
+                storedKeys = await getMPCKeys(publicKey.toBase58());
+                if (storedKeys) break;
+                await new Promise((res) => setTimeout(res, 300)); // wait 300ms
             }
 
+            if (!storedKeys) {
+                console.error("No stored MPC keys found after waiting", publicKey.toBase58());
+                throw new Error("No stored MPC keys found after waiting");
+            }
+
+            console.log("Using stored MPC keys for wallet:", publicKey.toBase58());
+
             const cipherSharedSecret = x25519.getSharedSecret(
-                cipherPrivateKey,
+                storedKeys.privateKey,
                 mxePublicKey
             );
             const cipher = new RescueCipher(cipherSharedSecret);
-            return { cipher, cipherPublicKey };
+
+            return { cipher, cipherPublicKey: storedKeys.publicKey };
         } catch (error) {
             console.error("Error in cipherDataPromise:", error);
             return null;
         }
     }, [provider, program, publicKey]);
+
 
 
     const choosemine = useCallback(
